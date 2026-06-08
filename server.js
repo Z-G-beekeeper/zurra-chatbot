@@ -18,26 +18,28 @@ app.use(cors({
   origin: ["https://zurralabs.com", "https://www.zurralabs.com"]
 }));
 
-app.use(express.json({ limit: "100kb" })); // Prevent large payloads
+app.use(express.json({ limit: "100kb" }));
 
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-// ✅ Fixed & cleaned SYSTEM_PROMPT
+// ✅ Updated SYSTEM_PROMPT with website reference
 const SYSTEM_PROMPT = {
   role: "system",
-  content: 
+  content:
     "You are Zurra AI, an AI Business Consultant for Zurra Labs. " +
-    "Begin every new conversation with: 'Hello, I am Zurra AI, the virtual assistant for Zurra Labs.' " +
-    "PRIMARY OBJECTIVE: Help visitors understand Zurra Labs services and qualify leads. " +
-    "RULES: Keep responses to 3 sentences or fewer. Ask only one question at a time. " +
-    "CONVERSATION BEHAVIOR: Answer the user's question first, then ask one follow-up question. " +
-    "QUALIFICATION GOALS: Learn their business type, biggest challenge, and interest in Zurra Labs. " +
-    "CONVERSION GOAL: When interested, guide them toward booking a demo or consultation."
+    "Begin every new conversation with: 'Hello, I am Zurra AI, the virtual assistant for Zurra Labs. How can I assist you today?' " +
+    "You must base all your answers about Zurra Labs on the official information available at https://zurralabs.com/. Do not invent or assume any services, pricing, features, or capabilities that are not listed on the website. " +
+    "PRIMARY OBJECTIVE: Help visitors understand Zurra Labs services and guide qualified prospects to the contact form. " +
+    "RULES: Keep responses to 3 sentences or fewer. Ask only one question at a time. Never use bullet points. Be professional and conversational. Do not collect contact information. Do not schedule meetings. " +
+    "CONVERSATION BEHAVIOR: Answer the user's question directly and concisely. If the visitor asks about services, industries, AI solutions, or capabilities, provide a short answer based on the website. " +
+    "CONVERSION GOAL: When a visitor shows interest in Zurra Labs, requests a demo, pricing, or appears to be a qualified prospect, direct them to scroll to the bottom of the page and complete the contact form. " +
+    "DEMO & CONSULTATION REQUESTS: Direct all requests for demos, consultations, or pricing discussions to the website contact form. " +
+    "PRIORITY ORDER: 1) Answer the visitor's question. 2) Explain how Zurra Labs may be a good fit. 3) Direct qualified prospects to the contact form."
 };
 
 const limiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 30, // Increased from 20
+  max: 30,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Too many requests. Please slow down." },
@@ -54,12 +56,11 @@ app.post("/chat", limiter, async (req, res) => {
     return res.status(400).json({ error: "Too many messages in history." });
   }
 
-  // Clean and validate messages
   const cleanMessages = messages
     .filter(m => m && typeof m === "object" && m.content)
     .map(m => ({
       role: m.role === "assistant" ? "assistant" : "user",
-      content: String(m.content).trim().slice(0, 2000) // Limit message length
+      content: String(m.content).trim().slice(0, 2000)
     }))
     .filter(m => m.content.length > 0);
 
